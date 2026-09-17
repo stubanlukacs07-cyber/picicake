@@ -1,51 +1,67 @@
 # PiciCake webshop — GitHub-ra feltöltés és megnyitás
 
-## 1. Feltöltés
+## A legegyszerűbb út: a kész build már benne van
 
-A zip tartalma egy kész repó-váz: benne a forrás, a `package.json`, a
-`.gitignore` és a GitHub Actions munkafolyamat. A `node_modules`, a `dist` és a
-`lokalis` mappa szándékosan nincs benne — ezeket a build hozza létre.
+A repóban ott van a `docs/` mappa, ami a **lefordított, kész oldal**. Nem kell
+se Node.js, se build, se GitHub Actions — csak feltöltöd és beállítod a Pages-t:
 
-```bash
-# a zip kibontása után, a picicake mappában
-git init
-git add .
-git commit -m "PiciCake webshop"
-git branch -M main
-git remote add origin https://github.com/<felhasznalo>/<repo>.git
-git push -u origin main
-```
+1. **Feltöltés** — a `picicake` mappa tartalmát töltsd fel a repóba
+   (GitHub felület: *Add file → Upload files*, vagy `git push`).
+2. **Settings → Pages**
+   - *Source:* **Deploy from a branch**
+   - *Branch:* **main** és a mappa: **`/docs`**
+   - *Save*
+3. Egy-két perc múlva az oldal él: `https://<felhasznalo>.github.io/<repo>/`
 
-Vagy a GitHub felületén: **Add file → Upload files**, és húzd be a `picicake`
-mappa tartalmát.
+## Ha üres, fehér vagy fekete oldalt látsz
 
-## 2. Megnyitás böngészőben (GitHub Pages)
+Az szinte biztosan azt jelenti, hogy a Pages a repó **gyökerét** szolgálja ki
+(`/ (root)`), nem a `/docs` mappát. A gyökérben lévő `index.html` a Vite
+fejlesztői sablonja: a `/src/main.tsx` fájl éles környezetben nem létezik, ezért
+nem indul el semmi.
 
-A repóban egyszer be kell állítani:
+Két megoldás:
 
-**Settings → Pages → Build and deployment → Source: GitHub Actions**
+- **Állítsd a Pages mappáját `/docs`-ra** (lásd fent) — ez a helyes beállítás.
+- Vagy hagyd gyökéren: a gyökér `index.html`-be beépítettünk egy biztonsági
+  hálót, ami ilyenkor automatikusan átirányít a `./docs/` címre. Ekkor a cím
+  `https://<felhasznalo>.github.io/<repo>/docs/` lesz.
 
-Ezután minden `main`-re küldött push automatikusan buildel és kiteszi az oldalt.
-A cím: `https://<felhasznalo>.github.io/<repo>/`
+## Ha automatikus buildet szeretnél
 
-A Pages-build szándékosan **hash alapú útvonalakat** használt
-(`.../#/termek/koreai-bento-torta`) és relatív `base`-t, ezért:
+Van egy GitHub Actions munkafolyamat is (`.github/workflows/deploy.yml`), ami
+minden `main`-re küldött push után újraépíti és kiteszi az oldalt. Ehhez:
+
+**Settings → Pages → Source: GitHub Actions**
+
+Ezzel a `docs/` mappára nincs szükség, de nem is zavar.
+
+## Miért hash alapú az útvonal?
+
+A Pages-build relatív `base`-t és hash alapú útvonalakat használ
+(`.../#/termek/koreai-bento-torta`), ezért:
 
 - nem kell szerveroldali SPA-átirányítás,
 - mindegy, mi a repó neve, nem kell semmit átírni,
-- az aloldalak újratöltésre is működnek.
+- az aloldalak újratöltésre és megosztott linkből is működnek.
 
-## 3. Helyi futtatás
+Saját domainre a `npm run build` a normál URL-eket adja (`/termek/...`) — ott a
+szervernek kell minden kérést az `index.html`-re irányítania.
+
+## Helyi futtatás és újraépítés
 
 ```bash
 npm install
 npm run dev          # fejlesztői szerver
 npm run build        # éles build saját domainre (normál URL-ek)
-npm run build:pages  # GitHub Pages build (hash útvonalak, relatív base)
+npm run build:pages  # GitHub Pages build → dist/
 npm run build:local  # egyetlen HTML fájl, dupla kattintással nyitható
 ```
 
-## 4. Amit a klienstől még várunk
+A `docs/` mappa frissítése kézzel: `npm run build:pages`, majd a `dist` tartalmát
+másold a `docs` mappába (a `.nojekyll` fájl maradjon meg benne).
+
+## Amit a klienstől még várunk
 
 - a webhook URL-ek a `src/data/config.ts` `ENDPOINTS` blokkjába,
 - Stripe Checkout Session a szerver oldalon (a `checkoutUrl` visszaadásával),

@@ -5,3 +5,6 @@ lokalis/
 .vite/
 *.tsbuildinfo
 .DS_Store
+
+# A docs/ mappa SZÁNDÉKOSAN nincs kizárva: ez a GitHub Pages-re
+# feltöltött kész build.
