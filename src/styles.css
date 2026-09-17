@@ -35,7 +35,13 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* A vízszintes kifutást a html-en is le kell vágni, különben mobilon
+     oldalra lehet húzni az egész oldalt. */
+  overflow-x: clip;
+  max-width: 100%;
+}
 
 body {
   margin: 0;
@@ -45,10 +51,16 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 img { display: block; max-width: 100%; }
+
+/* Rács- és flexgyerekek ne feszítsék szét a sorukat a saját tartalmuk
+   minimális szélességére (ez adta a mobilos oldalra húzást). */
+.grid > *, .grid--3 > *, .cat-grid > *, .bs__row > *, .ship-grid > *,
+.good > *, .info-cards > *, .steps > *, .form-grid > *, .filterbar > * { min-width: 0; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; cursor: pointer; }
 
@@ -373,11 +385,12 @@ p:last-child { margin-bottom: 0; }
 .card__media { position: relative; display: block; overflow: hidden; background: var(--blush); aspect-ratio: 4 / 5; }
 .card__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .55s ease, transform .7s ease; }
 .card__img--b { opacity: 0; }
-.card:hover .card__img--a { transform: scale(1.05); }
-.card:hover .card__img--b { opacity: 1; }
+.card:hover .card__img--a, .card:active .card__img--a { transform: scale(1.05); }
+.card:hover .card__img--b, .card:active .card__img--b { opacity: 1; }
 
 .card__quick {
   position: absolute; left: 16px; right: 16px; bottom: 18px; z-index: 3;
+  pointer-events: none;
   padding: .85em 1em;
   background: rgba(255, 255, 255, .92); color: var(--ink);
   border: 0; border-radius: var(--r-pill);
@@ -385,7 +398,7 @@ p:last-child { margin-bottom: 0; }
   opacity: 0; transform: translateY(14px);
   transition: opacity .3s ease, transform .3s ease, background .25s ease, color .25s ease;
 }
-.card:hover .card__quick, .card:focus-within .card__quick { opacity: 1; transform: translateY(0); }
+.card:hover .card__quick, .card:focus-within .card__quick, .card:active .card__quick { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .card__quick:hover { background: var(--black); color: #fff; }
 
 .burst { position: absolute; top: 12px; right: 12px; z-index: 4; width: 76px; height: 76px; animation: spinIn .8s cubic-bezier(.2, .8, .3, 1) both; }
@@ -794,7 +807,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 .info-chips a:hover, .info-chips button:hover { background: var(--black); color: #fff; transform: translateY(-2px); }
 
-.ship-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.ship-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px; }
 .ship {
   position: relative; display: flex; flex-direction: column; gap: .6rem;
   padding: 26px 24px 24px;
@@ -811,7 +824,7 @@ textarea { min-height: 120px; resize: vertical; }
 .ship--off .ship__icon { background: #c9b6b2; }
 .ship__tag { position: absolute; top: 18px; right: 18px; font-size: .68rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
 
-.good { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.good { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px; }
 .good__item { padding: 26px 24px; background: #fff; border-radius: var(--r-lg); border: 1px solid var(--line); transition: transform .3s ease, box-shadow .3s ease; }
 .good__item:hover { transform: translateY(-4px); box-shadow: var(--shadow-card); }
 .good__item h3 { margin-bottom: .7rem; font-size: 1.04rem; }
@@ -1040,27 +1053,51 @@ textarea { min-height: 120px; resize: vertical; }
 
 @media (max-width: 680px) {
   :root { --gutter: 18px; }
-  .filterbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .filterbar { display: block; }
   .filters {
     flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px;
+    max-width: 100%; margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
     scrollbar-width: none; -webkit-overflow-scrolling: touch;
   }
+  .toolbar__count { margin-top: 10px; }
   .filters::-webkit-scrollbar { display: none; }
   .filters .chip { flex: none; white-space: nowrap; }
-  .grid, .cat-grid, .grid--3, .bs__row { grid-template-columns: repeat(2, 1fr); }
+  .grid, .cat-grid, .grid--3 { grid-template-columns: repeat(2, 1fr); }
+
+  /* Best Sellers: mind a három elem megvan, vízszintesen húzható sávban —
+     a harmadik kikandikál, hogy látszódjon, van még. */
+  .bs__row {
+    display: flex; gap: 12px;
+    overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 6px; margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .bs__row::-webkit-scrollbar { display: none; }
+  .bs__row > * { flex: 0 0 62%; scroll-snap-align: start; }
+
+  /* USP badge-ek: egy sor, vízszintesen húzható. */
+  .feature-container {
+    flex-wrap: nowrap; justify-content: flex-start;
+    overflow-x: auto; scroll-snap-type: x proximity;
+    margin-inline: calc(var(--gutter) * -1); padding: 0 var(--gutter) 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .feature-container::-webkit-scrollbar { display: none; }
+  .feature-badge { flex: none; scroll-snap-align: start; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .span-2 { grid-column: auto; }
   .card__short { display: none; }
-  .card__quick { opacity: 1; transform: none; }
   .burst { width: 58px; height: 58px; }
   .gallery__thumbs button { width: 58px; height: 58px; }
   .feature-badge { font-size: 14px; padding: 9px 18px; }
   .steps-bar__item { font-size: .76rem; }
-  .bs__row > :nth-child(3) { display: none; }
 }
 
 @media (max-width: 380px) {
-  .grid, .cat-grid, .grid--3, .bs__row { grid-template-columns: 1fr; }
+  .grid, .cat-grid, .grid--3 { grid-template-columns: 1fr; }
+  .bs__row > * { flex-basis: 74%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

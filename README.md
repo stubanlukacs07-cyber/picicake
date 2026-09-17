@@ -588,3 +588,53 @@ A félresikerült kivágású „Szezonális desszertek" dia lecserélve a klien
 - **A szerkesztőbe visszalépve a legfrissebb terv jelenik meg.** Indításkor a
   mentett `artState` (festés, nyomott krém, lerakott dekor) is visszatöltődik,
   nem csak a config.
+
+---
+
+## Legutóbbi kör — mobil és hibák
+
+### Vízszintes túlcsúszás (az oldal oldalra húzható volt)
+Két konkrét okozója volt, mérésből: a termékek oldalon a `.filterbar` (a nowrap
+chipsor flex konténere a tartalmához nőtt, 354 helyett 708 px), az Információk
+oldalon pedig a `ship-grid` három fix hasábja. Javítva: a chipsor saját,
+korlátozott szélességű húzható sáv, a rácsok `auto-fit` + `minmax(min(250px,100%))`,
+a rács- és flexgyerekek `min-width: 0`-t kaptak, és a levágás a `html`-en is ott
+van (`overflow-x: clip`) — mobilon a `body`-ra tett levágás egyedül nem elég.
+Mind a 10 oldal `scrollWidth`-e most pontosan a képernyő szélessége.
+
+### Termékkártyák
+Minden kártyán ugyanaz a gomb: **Kiválaszt**, és a termékoldalra visz. Alapból
+nem látszik — asztali gépen hoverre, telefonon az ujj lenyomására jelenik meg,
+ugyanazzal a képváltással. A kártyára koppintás mindig azonnal továbbdob, mert a
+gomb `pointer-events: none`, amíg nem látszik.
+
+### Best Sellers és USP badge-ek mobilon
+Korábban a harmadik best seller el volt rejtve, a badge-ek pedig négy sorba
+tördeltek. Most mindkettő egy sorban, vízszintesen húzható sávban van, és a
+következő elem kikandikál, hogy látszódjon: van még.
+
+### A 3D tervező mobilon — Paint-szerű kezelés
+Asztali gépen semmi nem változott. Telefonon viszont:
+
+- A vászon fent marad, alatta az eszközsáv.
+- A képernyő alján **fix ikonsáv** van, szakaszonként egy ikonnal (Mit
+  tervezünk?, Íz, Forma, Krém színe, Habszegély, Extrák, Felirat).
+- Egy ikonra koppintva **alsó lapként** csúszik fel csak az az egy csoport, a
+  vászon pedig annyira rövidül, hogy a lap fölött teljesen látszódjon — így
+  minden állítás azonnal ellenőrizhető, nem kell hosszú panelt görgetni.
+- A lap fejlécében ott a csoport neve és egy bezáró gomb; a lap nyitva marad,
+  míg végzel.
+- Az ikonsáv React oldalról épül (`DesignerMobileBar`), a panel szakaszait
+  MutationObserverrel követi — így a tervező saját újrarenderelése nem bontja el.
+
+### Két ujjal nem rajzol
+Ez valódi hiba volt: a második ujj leérkezésekor az első ujj vonása tovább
+futott, tehát forgatás közben is festett. Most a jelenet követi az aktív
+mutatókat: a második ujjnál a folyamatban lévő vonást visszavonja (a festéshez
+vonás előtti pillanatképből), és amíg minden ujj fel nem emelkedik, nem rajzol.
+Teszttel igazolva: két ujjas húzás után nem keletkezik festés.
+
+### Érintőbarát méretek
+Minden kattintható elem legalább 40–46 px, a beviteli mezők betűje 16 px (az iOS
+így nem közelít rá), és a vásznon `touch-action: none`, hogy az ujj ne az oldalt
+görgesse.

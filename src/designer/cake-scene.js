@@ -2566,11 +2566,62 @@ export function createCakeScene(mount, opts = {}) {
     try { renderer.domElement.setPointerCapture(ev.pointerId); } catch { /* nem minden pointer fogható */ }
   };
 
+  /* --------------------------------------------------------------- */
+  /* Érintés: egy ujj rajzol, kettő forgat — és forgatás közben nem   */
+  /* rajzol. A második ujj leérkezésekor a folyamatban lévő vonást    */
+  /* visszavonjuk, és amíg minden ujj fel nem emelkedik, nem rajzol.  */
+  /* --------------------------------------------------------------- */
+  const activePointers = new Set();
+  let gesture = false;
+  let paintBackup = null;
+
+  /** A festés előtti állapot, hogy egy félbehagyott vonás eltüntethető legyen. */
+  function snapPaint() {
+    try {
+      paintBackup = {
+        paint: paintCtx.getImageData(0, 0, paintCv.width, paintCv.height),
+        side: sideCtx.getImageData(0, 0, sideCv.width, sideCv.height),
+      };
+    } catch { paintBackup = null; }
+  }
+
+  function abortCurrent() {
+    if (!current) return;
+    if (current.kind === 'paint' && paintBackup) {
+      paintCtx.putImageData(paintBackup.paint, 0, 0);
+      sideCtx.putImageData(paintBackup.side, 0, 0);
+      paintTex.needsUpdate = true;
+      sideTex.needsUpdate = true;
+    }
+    if (current.kind === 'krem') {
+      if (current.mesh) {
+        pipeGroup.remove(current.mesh);
+        current.mesh.geometry.dispose();
+      }
+      if (current.moved && strokes.length) strokes.pop();
+      rebuildStrokes();
+    }
+    current = null;
+    mark();
+  }
+
   function onPointerDown(ev) {
     if (ev.button === 2) return;               // jobb gomb: mindig forgatás
     const isTouch = ev.pointerType === 'touch';
 
+    if (isTouch) {
+      activePointers.add(ev.pointerId);
+      /* A második ujj: ez már forgatás/nagyítás, nem rajzolás. */
+      if (activePointers.size > 1) {
+        gesture = true;
+        abortCurrent();
+        return;
+      }
+      if (gesture) return;
+    }
+
     if (tool === 'brush') {
+      snapPaint();
       current = { kind: 'paint' };
       capture(ev);
       paintAt(ev);
@@ -2622,6 +2673,8 @@ export function createCakeScene(mount, opts = {}) {
   }
 
   function onPointerMove(ev) {
+    /* Forgatás közben (két ujj) nem rajzolunk. */
+    if (gesture) return;
     if (!current) return;
     if (current.kind === 'paint') return paintAt(ev);
     if (current.kind === 'erase') return eraseStrokeAt(ev);
@@ -2850,6 +2903,10 @@ export function createCakeScene(mount, opts = {}) {
   }
 
   function onPointerUp(ev) {
+    if (ev?.pointerType === 'touch' && ev.pointerId !== undefined) {
+      activePointers.delete(ev.pointerId);
+      if (activePointers.size === 0) gesture = false;
+    }
     if (!current) return;
     if (ev?.pointerId !== undefined) {
       try { renderer.domElement.releasePointerCapture(ev.pointerId); } catch { /* nincs capture */ }
@@ -2889,6 +2946,12 @@ export function createCakeScene(mount, opts = {}) {
   // vaszonon KIVUL engedik el), a vonas kulonben nyitva maradna, es a
   // kovetkezo mozgatas tovabb festene.
   const endAnywhere = (ev) => { if (current) onPointerUp(ev); };
+  const clearGesture = (ev) => {
+    if (ev?.pointerId !== undefined) activePointers.delete(ev.pointerId);
+    if (activePointers.size === 0) gesture = false;
+  };
+  window.addEventListener('pointerup', clearGesture);
+  window.addEventListener('pointercancel', clearGesture);
   window.addEventListener('pointerup', endAnywhere);
   window.addEventListener('pointercancel', endAnywhere);
   window.addEventListener('blur', endAnywhere);
@@ -3443,6 +3506,8 @@ export function createCakeScene(mount, opts = {}) {
       el.removeEventListener('pointermove', onPointerMove);
       el.removeEventListener('pointerup', onPointerUp);
       el.removeEventListener('pointercancel', onPointerUp);
+      window.removeEventListener('pointerup', clearGesture);
+      window.removeEventListener('pointercancel', clearGesture);
       window.removeEventListener('pointerup', endAnywhere);
       window.removeEventListener('pointercancel', endAnywhere);
       window.removeEventListener('blur', endAnywhere);

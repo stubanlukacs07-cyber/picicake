@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DesignerMobileBar from '../components/DesignerMobileBar';
 import { DESIGNER_MARKUP } from '../designer/markup';
 import { initDesigner } from '../designer/ui.js';
 import type { DesignerOrder } from '../designer/types';
@@ -49,6 +50,8 @@ export default function CakeBuilder() {
   return (
     <div className="pc-designer">
       <div className="wrap" ref={root} dangerouslySetInnerHTML={{ __html: DESIGNER_MARKUP }} />
+      {/* Telefonon ikonsáv + alsó lap: egyszerre csak egy beállításcsoport látszik. */}
+      <DesignerMobileBar root={root} />
     </div>
   );
 }

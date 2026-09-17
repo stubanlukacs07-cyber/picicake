@@ -1,13 +1,11 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../data/products';
 import { formatFt } from '../lib/format';
-import { useCart } from '../lib/cart';
 import { Burst, Img } from './Bits';
 
 const BADGE: Record<string, string> = { new: 'Új', seasonal: 'Szezonális' };
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { add } = useCart();
   const configurable = Boolean(product.options?.length);
   const sale = product.comparePrice && product.comparePrice > product.price;
   const discount = sale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
@@ -32,11 +30,12 @@ export default function ProductCard({ product }: { product: Product }) {
           {sale && <span className="badge badge--sale">−{discount}%</span>}
         </div>
 
-        {configurable ? (
-          <Link to={`/termek/${product.slug}`} className="card__quick">Válassz opciót</Link>
-        ) : (
-          <button type="button" className="card__quick" onClick={() => add(product, [])}>Add a kosaradhoz</button>
-        )}
+        {/* Egységes gomb minden kártyán: a termékoldalra visz. Asztali gépen
+            hoverre, telefonon az ujj lenyomására jelenik meg — a kártyára
+            koppintás mindig azonnal továbbdob. */}
+        <Link to={`/termek/${product.slug}`} className="card__quick" tabIndex={-1} aria-hidden="true">
+          Kiválaszt
+        </Link>
       </div>
 
       <div className="card__body">

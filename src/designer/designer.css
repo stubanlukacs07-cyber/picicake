@@ -444,7 +444,7 @@ font-size:.83rem
   }
   .pc-designer .toolbar,
   .pc-designer .subbar { padding-inline: var(--gutter); }
-  .pc-designer .hint { padding-inline: var(--gutter); }
+  .pc-designer .hintbar { padding-inline: var(--gutter); }
 
   /* Az eszközsáv vízszintesen húzható, nem tördel három sorba. */
   .pc-designer .toolbar {
@@ -480,4 +480,98 @@ font-size:.83rem
   /* A befejező blokk gombjai teljes szélességűek. */
   .pc-designer .finish__body .btn { width: 100%; }
   .pc-designer .shots__item { width: 58px; height: 58px; }
+}
+
+/* ================================================================== */
+/* Mobil: Paint-szerű kezelés — ikonsáv + alsó lap                     */
+/*                                                                     */
+/* A vászon fent marad és látszik, alatta egy ikonsáv. Egy ikonra       */
+/* koppintva alsó lapként csúszik fel CSAK az adott beállításcsoport,   */
+/* így nem kell a hosszú panelt görgetni, és a változás azonnal látszik.*/
+/* ================================================================== */
+
+@media (max-width: 1040px) {
+  .pc-designer[data-mobile='true'] .builder { padding-bottom: 92px; }
+
+    /* Ikonsáv: fix a képernyő alján, mint egy rajzprogram eszköztára. */
+  .pc-designer .mbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 42;
+    display: flex; gap: 6px;
+    padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom, 0px));
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 24px -20px rgba(47, 36, 34, .6);
+  }
+  .pc-designer .mbar::-webkit-scrollbar { display: none; }
+  .pc-designer .mbar__btn {
+    flex: none; display: grid; justify-items: center; gap: 3px;
+    min-width: 64px; min-height: 52px; padding: 7px 8px;
+    background: #fff; border: 1.6px solid var(--line); border-radius: 14px;
+    font: inherit; color: var(--ink-soft); cursor: pointer;
+    transition: all .2s ease;
+  }
+  .pc-designer .mbar__btn[aria-pressed='true'] {
+    background: var(--ink); border-color: var(--ink); color: #fff;
+  }
+  .pc-designer .mbar__icon { font-size: 1.12rem; line-height: 1; }
+  .pc-designer .mbar__label { font-size: .64rem; font-weight: 600; white-space: nowrap; }
+
+  /* A panel alsó lapként viselkedik, az ikonsáv fölött. Csukva nem látszik. */
+  .pc-designer[data-mobile='true'] #panel {
+    --mbar-h: calc(69px + env(safe-area-inset-bottom, 0px));
+    --sheet-h: min(46vh, 380px);
+    position: fixed; left: 0; right: 0; bottom: var(--mbar-h); z-index: 40;
+    height: var(--sheet-h); overflow-y: auto;
+    margin: 0; padding: 6px 18px 18px;
+    background: #fff; border: 0;
+    box-shadow: 0 -18px 40px -22px rgba(47, 36, 34, .55);
+    transform: translateY(calc(100% + var(--mbar-h)));
+    transition: transform .28s cubic-bezier(.2, .7, .3, 1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .pc-designer[data-sheet='open'] #panel { transform: translateY(0); }
+
+  /* Az alsó lap fejléce a címmel és a bezáró gombbal. */
+  .pc-designer .msheet__head {
+    --mbar-h: calc(69px + env(safe-area-inset-bottom, 0px));
+    --sheet-h: min(46vh, 380px);
+    position: fixed; left: 0; right: 0; z-index: 41;
+    bottom: calc(var(--mbar-h) + var(--sheet-h));
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 11px 18px;
+    background: var(--rose); color: #fff;
+    border-radius: 18px 18px 0 0;
+    font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .pc-designer .msheet__close {
+    width: 32px; height: 32px; display: grid; place-items: center; flex: none;
+    padding: 0; background: rgba(255, 255, 255, .24); color: #fff;
+    border: 0; border-radius: 50%; font-size: 1.2rem; line-height: 1; cursor: pointer;
+  }
+
+  /* Alsó lapon a szekció fejléce felesleges: a lap fejléce mutatja. */
+  .pc-designer[data-mobile='true'] #panel details.sec > summary { display: none; }
+  .pc-designer[data-mobile='true'] #panel details.sec { border-bottom: 0; }
+  .pc-designer[data-mobile='true'] #panel details.sec > .opt { padding-top: 10px; }
+
+  /* A vászon magasabb lehet: a panel már nem foglal helyet a lapon. */
+  .pc-designer[data-mobile='true'] .canvas {
+    height: min(52vh, calc(100vh - var(--header-h, 74px) - 190px));
+  }
+
+  /* Nyitott alsó lapnál a vászon annyira rövidül, hogy a lap fölött
+     teljesen látszódjon — így minden állítás azonnal ellenőrizhető. */
+  .pc-designer[data-mobile='true'][data-sheet='open'] #panel { --sheet-h: min(38vh, 330px); }
+  .pc-designer[data-mobile='true'][data-sheet='open'] .msheet__head { --sheet-h: min(38vh, 330px); }
+  .pc-designer[data-mobile='true'][data-sheet='open'] .canvas {
+    height: max(180px, calc(100vh - var(--header-h, 74px) - min(38vh, 330px) - 190px));
+  }
+  .pc-designer[data-mobile='true'][data-sheet='open'] .hintbar { display: none; }
+  .pc-designer[data-mobile='true'][data-sheet='open'] .head { display: none; }
+
+  /* A befejező blokk és az összegzés a lapon belül is elérhető marad. */
+  .pc-designer[data-mobile='true'] #panel .summary,
+  .pc-designer[data-mobile='true'] #panel .finish { margin-top: 14px; }
 }
